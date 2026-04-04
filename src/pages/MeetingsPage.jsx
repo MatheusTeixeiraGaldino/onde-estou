@@ -26,7 +26,6 @@ export default function MeetingsPage() {
     const unsub = onSnapshot(q, snap => {
       setMeetings(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
-    // load events for linking
     getDocs(collection(db, 'events')).then(snap => {
       setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
@@ -41,16 +40,7 @@ export default function MeetingsPage() {
 
   const openEdit = (m) => {
     setEditingId(m.id);
-    setForm({
-      title: m.title || '',
-      eventId: m.eventId || '',
-      date: m.date || '',
-      participants: m.participants || '',
-      notes: m.notes || '',
-      decisions: m.decisions || '',
-      pendingActions: m.pendingActions || '',
-      responsible: m.responsible || '',
-    });
+    setForm({ title: m.title||'', eventId: m.eventId||'', date: m.date||'', participants: m.participants||'', notes: m.notes||'', decisions: m.decisions||'', pendingActions: m.pendingActions||'', responsible: m.responsible||'' });
     setShowModal(true);
   };
 
@@ -58,12 +48,7 @@ export default function MeetingsPage() {
     if (!form.title || !form.date) return;
     setLoading(true);
     try {
-      const data = {
-        ...form,
-        creatorId: user.uid,
-        creatorName: profile?.name,
-        updatedAt: serverTimestamp(),
-      };
+      const data = { ...form, creatorId: user.uid, creatorName: profile?.name, updatedAt: serverTimestamp() };
       if (editingId) {
         await updateDoc(doc(db, 'meetings', editingId), data);
       } else {
@@ -80,7 +65,7 @@ export default function MeetingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-header">Atas de Reunião</h1>
-          <p className="text-slate-400 text-sm">{meetings.length} registradas</p>
+          <p className="text-stone-400 text-sm">{meetings.length} registradas</p>
         </div>
         <button onClick={openCreate} className="btn-primary">
           <Plus size={16} /> Nova Ata
@@ -88,7 +73,7 @@ export default function MeetingsPage() {
       </div>
 
       {meetings.length === 0 ? (
-        <div className="text-center py-12 text-slate-500">
+        <div className="text-center py-12 text-stone-400">
           <FileText size={40} className="mx-auto mb-3 opacity-30" />
           <p>Nenhuma ata registrada ainda</p>
         </div>
@@ -99,75 +84,69 @@ export default function MeetingsPage() {
             const linkedEvent = events.find(e => e.id === m.eventId);
             return (
               <div key={m.id} className="card">
-                <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => setExpandedId(isExpanded ? null : m.id)}
-                >
+                <div className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setExpandedId(isExpanded ? null : m.id)}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-slate-100">{m.title}</h3>
-                      {linkedEvent && (
-                        <span className="badge-blue text-[10px] badge">{linkedEvent.title}</span>
-                      )}
+                      <h3 className="font-semibold text-stone-800">{m.title}</h3>
+                      {linkedEvent && <span className="badge-blue text-[10px] badge">{linkedEvent.title}</span>}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                       {m.date && (
-                        <span className="flex items-center gap-1 text-xs text-slate-500">
+                        <span className="flex items-center gap-1 text-xs text-stone-400">
                           <Calendar size={11} />
                           {format(new Date(m.date), "d MMM yyyy", { locale: ptBR })}
                         </span>
                       )}
                       {m.participants && (
-                        <span className="flex items-center gap-1 text-xs text-slate-500">
+                        <span className="flex items-center gap-1 text-xs text-stone-400">
                           <Users size={11} /> {m.participants.split(',').length} participante(s)
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 ml-2">
-                    <button
-                      onClick={e => { e.stopPropagation(); openEdit(m); }}
-                      className="p-1.5 text-slate-500 hover:text-primary-400 hover:bg-slate-800 rounded-lg transition-colors"
-                    >
+                    <button onClick={e => { e.stopPropagation(); openEdit(m); }}
+                      className="p-1.5 text-stone-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
                       <Edit2 size={14} />
                     </button>
-                    {isExpanded ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
+                    {isExpanded ? <ChevronUp size={16} className="text-stone-400" /> : <ChevronDown size={16} className="text-stone-400" />}
                   </div>
                 </div>
 
                 {isExpanded && (
-                  <div className="mt-4 space-y-3 border-t border-slate-800 pt-4 animate-fade-in">
+                  <div className="mt-4 space-y-3 border-t border-stone-100 pt-4 animate-fade-in">
                     {m.participants && (
                       <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Participantes</p>
-                        <p className="text-sm text-slate-300">{m.participants}</p>
+                        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">Participantes</p>
+                        <p className="text-sm text-stone-700">{m.participants}</p>
                       </div>
                     )}
                     {m.notes && (
                       <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Descrição / Pauta</p>
-                        <p className="text-sm text-slate-300 whitespace-pre-wrap">{m.notes}</p>
+                        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">Descrição / Pauta</p>
+                        <p className="text-sm text-stone-700 whitespace-pre-wrap">{m.notes}</p>
                       </div>
                     )}
                     {m.decisions && (
                       <div>
-                        <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-1">✅ Decisões Tomadas</p>
-                        <p className="text-sm text-slate-300 whitespace-pre-wrap">{m.decisions}</p>
+                        <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1">✅ Decisões Tomadas</p>
+                        <p className="text-sm text-stone-700 whitespace-pre-wrap">{m.decisions}</p>
                       </div>
                     )}
                     {m.pendingActions && (
                       <div>
-                        <p className="text-xs font-semibold text-amber-500 uppercase tracking-wider mb-1">⏳ Pendências</p>
-                        <p className="text-sm text-slate-300 whitespace-pre-wrap">{m.pendingActions}</p>
+                        <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-1">⏳ Pendências</p>
+                        <p className="text-sm text-stone-700 whitespace-pre-wrap">{m.pendingActions}</p>
                       </div>
                     )}
                     {m.responsible && (
                       <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Responsáveis</p>
-                        <p className="text-sm text-slate-300">{m.responsible}</p>
+                        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">Responsáveis</p>
+                        <p className="text-sm text-stone-700">{m.responsible}</p>
                       </div>
                     )}
-                    <p className="text-xs text-slate-600">Registrado por {m.creatorName}</p>
+                    <p className="text-xs text-stone-300">Registrado por {m.creatorName}</p>
                   </div>
                 )}
               </div>
