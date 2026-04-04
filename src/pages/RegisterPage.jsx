@@ -4,11 +4,19 @@ import { useAuth } from '../contexts/AuthContext';
 import { MapPin, Mail, Lock, User, Cake, Building2 } from 'lucide-react';
 
 const EMOJIS = ['👤','👨','👩','🧑','👨‍💼','👩‍💼','🧑‍💼','👨‍💻','👩‍💻','🧑‍💻','👨‍🔬','👩‍🔬','🦸','🦸‍♀️','😎','🤓'];
-const DEPARTMENTS = ['TI','RH','Financeiro','Comercial','Marketing','Operações','Jurídico','Diretoria','Outro'];
+const DEPARTMENTS = [
+  'Departamento Pessoal',
+  'Jurídico',
+  'DH',
+  'SESMT',
+  'Comunicação',
+  'Treinamento e Desenvolvimento',
+  'Saúde e Bem Estar',
+];
 
 export default function RegisterPage() {
   const { register } = useAuth();
-  const [form, setForm] = useState({ name:'', email:'', password:'', birthDate:'', department:'TI', role:'colaborador', emoji:'👤' });
+  const [form, setForm] = useState({ name:'', email:'', password:'', birthDate:'', department:'Departamento Pessoal', role:'colaborador', emoji:'👤' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -47,7 +55,6 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Emoji picker */}
             <div>
               <label className="label">Seu avatar</label>
               <div className="flex flex-wrap gap-2">
@@ -93,22 +100,12 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">Departamento</label>
-                <div className="relative">
-                  <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <select className="input pl-9 appearance-none" value={form.department} onChange={e => set('department', e.target.value)}>
-                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="label">Perfil</label>
-                <select className="input appearance-none" value={form.role} onChange={e => set('role', e.target.value)}>
-                  <option value="colaborador">Colaborador</option>
-                  <option value="gestor">Gestor</option>
-                  <option value="admin">Admin</option>
+            <div>
+              <label className="label">Departamento</label>
+              <div className="relative">
+                <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <select className="input pl-9 appearance-none" value={form.department} onChange={e => set('department', e.target.value)}>
+                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             </div>
