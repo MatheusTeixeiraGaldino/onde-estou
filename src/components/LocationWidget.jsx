@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, limit, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { MapPin, Clock, Plus, Check } from 'lucide-react';
@@ -26,9 +26,8 @@ export default function LocationWidget() {
     const unsub = onSnapshot(q, snap => {
       if (!snap.empty) {
         const data = snap.docs[0].data();
-        const now = new Date();
         const endDate = data.end ? new Date(data.end) : null;
-        if (!endDate || endDate > now) {
+        if (!endDate || endDate > new Date()) {
           setCurrent({ id: snap.docs[0].id, ...data });
         } else {
           setCurrent(null);
@@ -64,25 +63,25 @@ export default function LocationWidget() {
 
   return (
     <>
-      <div className="card border-primary-500/30 bg-gradient-to-br from-primary-900/30 to-slate-900/80">
+      <div className="card border-indigo-200 bg-gradient-to-br from-indigo-50/80 to-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary-500/20 border border-primary-500/30 flex items-center justify-center">
-              <MapPin size={18} className="text-primary-400" />
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center">
+              <MapPin size={18} className="text-indigo-500" />
             </div>
             <div>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Localização atual</p>
+              <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Localização atual</p>
               {current ? (
                 <>
-                  <p className="text-white font-semibold">{current.location}</p>
-                  <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                  <p className="text-stone-800 font-semibold">{current.location}</p>
+                  <p className="text-xs text-stone-400 flex items-center gap-1 mt-0.5">
                     <Clock size={11} />
                     Desde {format(new Date(current.start), 'HH:mm')}
                     {current.end && ` · até ${format(new Date(current.end), 'HH:mm')}`}
                   </p>
                 </>
               ) : (
-                <p className="text-slate-400 text-sm">Não registrado</p>
+                <p className="text-stone-400 text-sm">Não registrado</p>
               )}
             </div>
           </div>
@@ -101,7 +100,7 @@ export default function LocationWidget() {
                 {LOCATIONS.map(l => (
                   <button key={l} type="button"
                     onClick={() => setForm(f => ({ ...f, location: l }))}
-                    className={`px-3 py-2 rounded-xl text-sm transition-all text-left flex items-center gap-2 ${form.location === l ? 'bg-primary-500/20 border-primary-500 border text-primary-300' : 'bg-slate-800 border border-slate-700 text-slate-300 hover:border-slate-600'}`}>
+                    className={`px-3 py-2 rounded-xl text-sm transition-all text-left flex items-center gap-2 ${form.location === l ? 'bg-indigo-50 border-indigo-400 border text-indigo-700 font-medium' : 'bg-white border border-stone-200 text-stone-600 hover:border-stone-300'}`}>
                     {form.location === l && <Check size={12} />}
                     {l}
                   </button>
