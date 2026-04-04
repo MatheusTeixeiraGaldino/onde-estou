@@ -1,0 +1,53 @@
+import { Outlet, NavLink } from 'react-router-dom';
+import { Home, Users, Calendar, FileText, Target, User, MapPin } from 'lucide-react';
+
+const navItems = [
+  { to: '/', icon: Home, label: 'Home' },
+  { to: '/people', icon: Users, label: 'Pessoas' },
+  { to: '/events', icon: Calendar, label: 'Eventos' },
+  { to: '/meetings', icon: FileText, label: 'Atas' },
+  { to: '/goals', icon: Target, label: 'Metas' },
+  { to: '/profile', icon: User, label: 'Perfil' },
+];
+
+export default function Layout() {
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/50">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
+              <MapPin size={16} className="text-white" />
+            </div>
+            <span className="font-display font-bold text-white text-lg">Onde Estou</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 pb-24 animate-fade-in">
+        <Outlet />
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-md border-t border-slate-800/50">
+        <div className="max-w-2xl mx-auto flex items-center justify-around py-1">
+          {navItems.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `nav-link ${isActive ? 'active' : ''}`
+              }
+            >
+              <Icon size={20} />
+              <span className="text-[10px] font-medium">{label}</span>
+            </NavLink>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}

@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    @apply bg-slate-950 text-slate-100 font-sans;
+    background: radial-gradient(ellipse at top left, #1e1b4b 0%, #0f172a 40%, #020617 100%);
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary-600 rounded-full;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-5 shadow-xl;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-primary-500/50 hover:shadow-primary-900/20 hover:shadow-2xl hover:-translate-y-0.5;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 text-sm shadow-lg shadow-primary-900/40 hover:shadow-primary-800/50 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 text-sm border border-slate-700 active:scale-95;
+  }
+
+  .btn-danger {
+    @apply bg-red-600/20 hover:bg-red-600/30 text-red-400 font-medium px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 text-sm border border-red-500/30 active:scale-95;
+  }
+
+  .input {
+    @apply bg-slate-800/80 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder-slate-500;
+  }
+
+  .label {
+    @apply text-slate-400 text-xs font-medium uppercase tracking-wider mb-1.5 block;
+  }
+
+  .badge {
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .badge-blue {
+    @apply badge bg-primary-500/20 text-primary-300 border border-primary-500/30;
+  }
+
+  .badge-green {
+    @apply badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30;
+  }
+
+  .badge-yellow {
+    @apply badge bg-amber-500/20 text-amber-300 border border-amber-500/30;
+  }
+
+  .badge-red {
+    @apply badge bg-red-500/20 text-red-300 border border-red-500/30;
+  }
+
+  .badge-purple {
+    @apply badge bg-violet-500/20 text-violet-300 border border-violet-500/30;
+  }
+
+  .nav-link {
+    @apply flex flex-col items-center gap-1 text-slate-500 hover:text-primary-400 transition-colors px-3 py-2;
+  }
+
+  .nav-link.active {
+    @apply text-primary-400;
+  }
+
+  .section-title {
+    @apply font-display font-semibold text-lg text-slate-100 mb-4;
+  }
+
+  .page-header {
+    @apply font-display font-bold text-2xl text-white mb-1;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+  }
+
+  .modal-content {
+    @apply bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto;
+  }
+}
