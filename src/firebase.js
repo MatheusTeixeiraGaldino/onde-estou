@@ -1,18 +1,15 @@
 // src/firebase.js
-// ⚠️ SUBSTITUA OS VALORES ABAIXO PELAS SUAS CREDENCIAIS DO FIREBASE
-// Vá em: Firebase Console → Seu projeto → Configurações → Apps web
-
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBZ_wtaeMWAM5yf0Q-ijSsrkiRaKblD5yA",
+  authDomain: "onde-estou-7e48d.firebaseapp.com",
+  projectId: "onde-estou-7e48d",
+  storageBucket: "onde-estou-7e48d.firebasestorage.app",
+  messagingSenderId: "939051039814",
+  appId: "1:939051039814:web:12c075ee312b63eccfde47"
 };
 
 const app = initializeApp(firebaseConfig);
