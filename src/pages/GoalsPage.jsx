@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { format, isPast, parseISO } from 'date-fns';
+import { format, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, Target, ChevronDown, ChevronUp, Trash2, CheckSquare, Square, AlertTriangle, Edit2 } from 'lucide-react';
 import Modal from '../components/Modal';
@@ -33,8 +33,6 @@ export default function GoalsPage() {
     const unsub = onSnapshot(q, async (snap) => {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setGoals(list);
-
-      // Load checklist items per goal
       const itemsMap = {};
       for (const goal of list) {
         const iq = query(collection(db, 'checklistItems'), where('goalId', '==', goal.id));
@@ -46,18 +44,15 @@ export default function GoalsPage() {
     return unsub;
   }, []);
 
-  // Realtime checklist updates
   useEffect(() => {
     if (!expandedId) return;
     const q = query(collection(db, 'checklistItems'), where('goalId', '==', expandedId));
     const unsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setChecklistItems(prev => ({ ...prev, [expandedId]: items }));
-      // Update progress
       if (items.length > 0) {
         const done = items.filter(i => i.completed).length;
-        const progress = Math.round((done / items.length) * 100);
-        updateDoc(doc(db, 'goals', expandedId), { progress });
+        updateDoc(doc(db, 'goals', expandedId), { progress: Math.round((done / items.length) * 100) });
       }
     });
     return unsub;
@@ -71,7 +66,7 @@ export default function GoalsPage() {
 
   const openEditGoal = (goal) => {
     setEditingGoal(goal.id);
-    setGoalForm({ title: goal.title, description: goal.description || '', responsible: goal.responsible || '', deadline: goal.deadline || '', status: goal.status });
+    setGoalForm({ title: goal.title, description: goal.description||'', responsible: goal.responsible||'', deadline: goal.deadline||'', status: goal.status });
     setShowGoalModal(true);
   };
 
@@ -82,23 +77,14 @@ export default function GoalsPage() {
       if (editingGoal) {
         await updateDoc(doc(db, 'goals', editingGoal), { ...goalForm, updatedAt: serverTimestamp() });
       } else {
-        await addDoc(collection(db, 'goals'), {
-          ...goalForm,
-          creatorId: user.uid,
-          creatorName: profile?.name,
-          progress: 0,
-          createdAt: serverTimestamp(),
-        });
+        await addDoc(collection(db, 'goals'), { ...goalForm, creatorId: user.uid, creatorName: profile?.name, progress: 0, createdAt: serverTimestamp() });
       }
       setShowGoalModal(false);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleDeleteGoal = async (id) => {
     if (!confirm('Excluir esta meta e todos seus itens?')) return;
-    // Delete checklist items
     const items = checklistItems[id] || [];
     for (const item of items) await deleteDoc(doc(db, 'checklistItems', item.id));
     await deleteDoc(doc(db, 'goals', id));
@@ -108,33 +94,21 @@ export default function GoalsPage() {
     if (!itemForm.description) return;
     setLoading(true);
     try {
-      await addDoc(collection(db, 'checklistItems'), {
-        ...itemForm,
-        goalId: selectedGoalId,
-        completed: false,
-        createdAt: serverTimestamp(),
-      });
+      await addDoc(collection(db, 'checklistItems'), { ...itemForm, goalId: selectedGoalId, completed: false, createdAt: serverTimestamp() });
       setShowItemModal(false);
       setItemForm({ description: '', responsible: '', deadline: '' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const toggleItem = async (item) => {
-    await updateDoc(doc(db, 'checklistItems', item.id), { completed: !item.completed });
-  };
-
-  const deleteItem = async (item) => {
-    await deleteDoc(doc(db, 'checklistItems', item.id));
-  };
+  const toggleItem = (item) => updateDoc(doc(db, 'checklistItems', item.id), { completed: !item.completed });
+  const deleteItem = (item) => deleteDoc(doc(db, 'checklistItems', item.id));
 
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-header">Metas</h1>
-          <p className="text-slate-400 text-sm">{goals.length} metas cadastradas</p>
+          <p className="text-stone-400 text-sm">{goals.length} metas cadastradas</p>
         </div>
         <button onClick={openCreateGoal} className="btn-primary">
           <Plus size={16} /> Nova Meta
@@ -142,7 +116,7 @@ export default function GoalsPage() {
       </div>
 
       {goals.length === 0 ? (
-        <div className="text-center py-12 text-slate-500">
+        <div className="text-center py-12 text-stone-400">
           <Target size={40} className="mx-auto mb-3 opacity-30" />
           <p>Nenhuma meta criada ainda</p>
         </div>
@@ -156,74 +130,57 @@ export default function GoalsPage() {
             const isOverdue = goal.deadline && isPast(new Date(goal.deadline)) && goal.status !== 'concluído';
 
             return (
-              <div key={goal.id} className={`card ${isOverdue ? 'border-red-500/30' : ''}`}>
-                {/* Header */}
-                <div
-                  className="flex items-start gap-2 cursor-pointer"
-                  onClick={() => setExpandedId(isExpanded ? null : goal.id)}
-                >
+              <div key={goal.id} className={`card ${isOverdue ? 'border-red-200' : ''}`}>
+                <div className="flex items-start gap-2 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : goal.id)}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-slate-100">{goal.title}</h3>
+                      <h3 className="font-semibold text-stone-800">{goal.title}</h3>
                       <span className={`badge text-[10px] ${STATUS_BADGE[goal.status]}`}>{goal.status}</span>
                       {isOverdue && (
-                        <span className="flex items-center gap-1 text-xs text-red-400">
+                        <span className="flex items-center gap-1 text-xs text-red-500">
                           <AlertTriangle size={11} /> Atrasada
                         </span>
                       )}
                     </div>
-                    {goal.responsible && (
-                      <p className="text-xs text-slate-500 mt-0.5">👤 {goal.responsible}</p>
-                    )}
-                    {goal.deadline && (
-                      <p className="text-xs text-slate-500">📅 {format(new Date(goal.deadline), "d MMM yyyy", { locale: ptBR })}</p>
-                    )}
-                    {/* Progress bar */}
+                    {goal.responsible && <p className="text-xs text-stone-400 mt-0.5">👤 {goal.responsible}</p>}
+                    {goal.deadline && <p className="text-xs text-stone-400">📅 {format(new Date(goal.deadline), "d MMM yyyy", { locale: ptBR })}</p>}
                     <div className="mt-2">
-                      <div className="flex justify-between text-xs text-slate-500 mb-1">
+                      <div className="flex justify-between text-xs text-stone-400 mb-1">
                         <span>{done}/{items.length} itens</span>
                         <span>{progress}%</span>
                       </div>
-                      <div className="w-full bg-slate-800 rounded-full h-1.5">
-                        <div
-                          className={`h-1.5 rounded-full transition-all duration-500 ${progress === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-primary-500 to-accent-500'}`}
-                          style={{ width: `${progress}%` }}
-                        />
+                      <div className="w-full bg-stone-100 rounded-full h-1.5">
+                        <div className={`h-1.5 rounded-full transition-all duration-500 ${progress === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-violet-500'}`}
+                          style={{ width: `${progress}%` }} />
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 ml-1 flex-shrink-0">
-                    <button onClick={e => { e.stopPropagation(); openEditGoal(goal); }} className="p-1.5 text-slate-500 hover:text-primary-400 hover:bg-slate-800 rounded-lg transition-colors">
+                    <button onClick={e => { e.stopPropagation(); openEditGoal(goal); }}
+                      className="p-1.5 text-stone-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
                       <Edit2 size={13} />
                     </button>
-                    <button onClick={e => { e.stopPropagation(); handleDeleteGoal(goal.id); }} className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors">
+                    <button onClick={e => { e.stopPropagation(); handleDeleteGoal(goal.id); }}
+                      className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                       <Trash2 size={13} />
                     </button>
-                    {isExpanded ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
+                    {isExpanded ? <ChevronUp size={16} className="text-stone-400" /> : <ChevronDown size={16} className="text-stone-400" />}
                   </div>
                 </div>
 
-                {/* Expanded */}
                 {isExpanded && (
-                  <div className="mt-4 border-t border-slate-800 pt-4 space-y-3 animate-fade-in">
-                    {goal.description && (
-                      <p className="text-sm text-slate-400">{goal.description}</p>
-                    )}
-
-                    {/* Checklist */}
+                  <div className="mt-4 border-t border-stone-100 pt-4 space-y-3 animate-fade-in">
+                    {goal.description && <p className="text-sm text-stone-600">{goal.description}</p>}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Checklist</p>
-                        <button
-                          onClick={() => { setSelectedGoalId(goal.id); setShowItemModal(true); }}
-                          className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
-                        >
+                        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Checklist</p>
+                        <button onClick={() => { setSelectedGoalId(goal.id); setShowItemModal(true); }}
+                          className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-medium">
                           <Plus size={12} /> Adicionar item
                         </button>
                       </div>
-
                       {items.length === 0 ? (
-                        <p className="text-xs text-slate-600 italic">Nenhum item no checklist</p>
+                        <p className="text-xs text-stone-300 italic">Nenhum item no checklist</p>
                       ) : (
                         <div className="space-y-1.5">
                           {items.map(item => {
@@ -232,28 +189,25 @@ export default function GoalsPage() {
                               <div key={item.id} className="flex items-start gap-2.5 py-1.5 group">
                                 <button onClick={() => toggleItem(item)} className="mt-0.5 flex-shrink-0">
                                   {item.completed
-                                    ? <CheckSquare size={16} className="text-emerald-400" />
-                                    : <Square size={16} className="text-slate-500" />
-                                  }
+                                    ? <CheckSquare size={16} className="text-emerald-500" />
+                                    : <Square size={16} className="text-stone-300" />}
                                 </button>
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-sm ${item.completed ? 'line-through text-slate-600' : 'text-slate-200'}`}>
+                                  <p className={`text-sm ${item.completed ? 'line-through text-stone-300' : 'text-stone-700'}`}>
                                     {item.description}
                                   </p>
                                   <div className="flex gap-2 flex-wrap mt-0.5">
-                                    {item.responsible && <span className="text-xs text-slate-500">👤 {item.responsible}</span>}
+                                    {item.responsible && <span className="text-xs text-stone-400">👤 {item.responsible}</span>}
                                     {item.deadline && (
-                                      <span className={`text-xs ${itemOverdue ? 'text-red-400' : 'text-slate-500'}`}>
+                                      <span className={`text-xs ${itemOverdue ? 'text-red-500' : 'text-stone-400'}`}>
                                         📅 {format(new Date(item.deadline), "d MMM", { locale: ptBR })}
                                         {itemOverdue && ' ⚠️'}
                                       </span>
                                     )}
                                   </div>
                                 </div>
-                                <button
-                                  onClick={() => deleteItem(item)}
-                                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-600 hover:text-red-400 transition-all"
-                                >
+                                <button onClick={() => deleteItem(item)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-400 transition-all">
                                   <Trash2 size={12} />
                                 </button>
                               </div>
@@ -270,7 +224,6 @@ export default function GoalsPage() {
         </div>
       )}
 
-      {/* Goal Modal */}
       {showGoalModal && (
         <Modal title={editingGoal ? 'Editar Meta' : 'Nova Meta'} onClose={() => setShowGoalModal(false)}>
           <div className="space-y-4">
@@ -280,12 +233,12 @@ export default function GoalsPage() {
             </div>
             <div>
               <label className="label">Descrição</label>
-              <textarea className="input min-h-[70px] resize-none" placeholder="Detalhes da meta..." value={goalForm.description} onChange={e => setG('description', e.target.value)} />
+              <textarea className="input min-h-[70px] resize-none" value={goalForm.description} onChange={e => setG('description', e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">Responsável</label>
-                <input type="text" className="input" placeholder="Nome" value={goalForm.responsible} onChange={e => setG('responsible', e.target.value)} />
+                <input type="text" className="input" value={goalForm.responsible} onChange={e => setG('responsible', e.target.value)} />
               </div>
               <div>
                 <label className="label">Prazo</label>
@@ -296,12 +249,11 @@ export default function GoalsPage() {
               <label className="label">Status</label>
               <div className="flex gap-2">
                 {STATUS_OPTIONS.map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setG('status', s)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-medium capitalize transition-all ${goalForm.status === s ? 'bg-primary-500/20 border-primary-500 border text-primary-300' : 'bg-slate-800 border border-slate-700 text-slate-400 hover:border-slate-600'}`}
-                  >
+                  <button key={s} type="button" onClick={() => setG('status', s)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-medium capitalize transition-all
+                      ${goalForm.status === s
+                        ? 'bg-indigo-100 border-indigo-400 border text-indigo-700'
+                        : 'bg-white border border-stone-200 text-stone-500 hover:border-stone-300'}`}>
                     {s}
                   </button>
                 ))}
@@ -317,7 +269,6 @@ export default function GoalsPage() {
         </Modal>
       )}
 
-      {/* Checklist Item Modal */}
       {showItemModal && (
         <Modal title="Adicionar Item ao Checklist" onClose={() => setShowItemModal(false)}>
           <div className="space-y-4">
@@ -328,7 +279,7 @@ export default function GoalsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">Responsável</label>
-                <input type="text" className="input" placeholder="Nome" value={itemForm.responsible} onChange={e => setI('responsible', e.target.value)} />
+                <input type="text" className="input" value={itemForm.responsible} onChange={e => setI('responsible', e.target.value)} />
               </div>
               <div>
                 <label className="label">Prazo</label>
