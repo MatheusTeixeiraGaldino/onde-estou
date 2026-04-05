@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  collection, onSnapshot, addDoc, updateDoc, doc,
+  collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc,
   serverTimestamp, orderBy, query, arrayUnion, arrayRemove
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -13,7 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   Plus, Calendar, MapPin, Users, Check, Clock,
   ChevronLeft, ChevronRight, List, CalendarDays, X,
-  ExternalLink
+  ExternalLink, Trash2
 } from 'lucide-react';
 import Modal from '../components/Modal';
 
@@ -39,10 +39,9 @@ const CATEGORY_DOT = {
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-// Generate Google Calendar URL
 function googleCalendarUrl(ev) {
   const start = new Date(ev.date);
-  const end = new Date(start.getTime() + 60 * 60 * 1000); // +1h
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
   const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   const params = new URLSearchParams({
     action: 'TEMPLATE',
@@ -54,28 +53,22 @@ function googleCalendarUrl(ev) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-// Generate .ics file (Outlook / Apple Calendar)
 function downloadICS(ev) {
   const start = new Date(ev.date);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
   const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-  const uid = `${ev.id || Date.now()}@ondeestou`;
   const ics = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//OndeEstou//PT',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//OndeEstou//PT',
     'BEGIN:VEVENT',
-    `UID:${uid}`,
+    `UID:${ev.id || Date.now()}@ondeestou`,
     `DTSTAMP:${fmt(new Date())}`,
     `DTSTART:${fmt(start)}`,
     `DTEND:${fmt(end)}`,
     `SUMMARY:${ev.title}`,
     `DESCRIPTION:${(ev.description || '').replace(/\n/g, '\\n')}`,
     `LOCATION:${ev.location || ''}`,
-    'END:VEVENT',
-    'END:VCALENDAR',
+    'END:VEVENT', 'END:VCALENDAR',
   ].join('\r\n');
-
   const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -89,14 +82,14 @@ export default function EventsPage() {
   const { user, profile } = useAuth();
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(null); // event id
+  const [showExportMenu, setShowExportMenu] = useState(null);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState('calendar');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
   const [form, setForm] = useState({
     title: '', description: '', date: '', location: '',
-    category: 'Reunião', customCategory: '',
+    category: 'Reunião', customCategory: '', responsible: '',
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -108,7 +101,6 @@ export default function EventsPage() {
     return unsub;
   }, []);
 
-  // Calendar helpers
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -121,7 +113,7 @@ export default function EventsPage() {
     setForm({
       title: '', description: '',
       date: day ? format(day, "yyyy-MM-dd'T'09:00") : '',
-      location: '', category: 'Reunião', customCategory: '',
+      location: '', category: 'Reunião', customCategory: '', responsible: '',
     });
     setShowModal(true);
   };
@@ -131,14 +123,14 @@ export default function EventsPage() {
     setLoading(true);
     try {
       const finalCategory = form.category === 'Outro' && form.customCategory
-        ? form.customCategory
-        : form.category;
+        ? form.customCategory : form.category;
       await addDoc(collection(db, 'events'), {
         title: form.title,
         description: form.description,
         date: form.date,
         location: form.location,
         category: finalCategory,
+        responsible: form.responsible,
         creatorId: user.uid,
         creatorName: profile?.name,
         confirmedUsers: [],
@@ -147,6 +139,12 @@ export default function EventsPage() {
       setShowModal(false);
       if (form.date) setSelectedDay(new Date(form.date));
     } finally { setLoading(false); }
+  };
+
+  const handleDelete = async (ev, e) => {
+    e.stopPropagation();
+    if (!confirm('Excluir este evento?')) return;
+    await deleteDoc(doc(db, 'events', ev.id));
   };
 
   const toggleConfirm = async (ev, e) => {
@@ -158,25 +156,37 @@ export default function EventsPage() {
     });
   };
 
+  const canDelete = (ev) =>
+    ev.creatorId === user.uid ||
+    (ev.responsible && ev.responsible.toLowerCase().includes(profile?.name?.toLowerCase()));
+
   const getCatColor = (cat) => CATEGORY_COLORS[cat] || 'bg-stone-100 text-stone-600 border-stone-200';
   const getCatDot = (cat) => CATEGORY_DOT[cat] || 'bg-stone-400';
 
   const upcoming = events.filter(e => !isPast(new Date(e.date)));
   const past = events.filter(e => isPast(new Date(e.date)));
 
-  /* ── EVENT CARD ── */
   const EventCard = ({ ev, compact = false }) => {
     const confirmed = ev.confirmedUsers?.includes(user.uid);
     const isOver = isPast(new Date(ev.date));
     const isExportOpen = showExportMenu === ev.id;
+    const canDel = canDelete(ev);
 
     return (
       <div className={`card-hover ${compact ? 'p-3' : ''}`}>
         <div className="flex justify-between items-start gap-2 mb-2">
           <h3 className={`font-semibold text-stone-800 ${compact ? 'text-sm' : ''}`}>{ev.title}</h3>
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${getCatColor(ev.category)}`}>
-            {ev.category}
-          </span>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getCatColor(ev.category)}`}>
+              {ev.category}
+            </span>
+            {canDel && (
+              <button onClick={(e) => handleDelete(ev, e)}
+                className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                <Trash2 size={12} />
+              </button>
+            )}
+          </div>
         </div>
 
         {!compact && ev.description && (
@@ -191,6 +201,11 @@ export default function EventsPage() {
           {ev.location && !compact && (
             <div className="flex items-center gap-2 text-xs text-stone-400">
               <MapPin size={11} /> {ev.location}
+            </div>
+          )}
+          {ev.responsible && !compact && (
+            <div className="flex items-center gap-2 text-xs text-stone-400">
+              👤 Responsável: {ev.responsible}
             </div>
           )}
           <div className="flex items-center gap-2 text-xs text-stone-400">
@@ -209,7 +224,6 @@ export default function EventsPage() {
             </button>
           )}
 
-          {/* Export to calendar */}
           <div className="relative">
             <button
               onClick={(e) => { e.stopPropagation(); setShowExportMenu(isExportOpen ? null : ev.id); }}
@@ -218,17 +232,13 @@ export default function EventsPage() {
             </button>
             {isExportOpen && (
               <div className="absolute bottom-full left-0 mb-1 bg-white border border-stone-200 rounded-xl shadow-lg overflow-hidden z-20 min-w-[180px]">
-                <a
-                  href={googleCalendarUrl(ev)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <a href={googleCalendarUrl(ev)} target="_blank" rel="noopener noreferrer"
                   onClick={() => setShowExportMenu(null)}
                   className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 transition-colors">
                   <img src="https://www.google.com/favicon.ico" alt="" className="w-4 h-4" />
                   Google Agenda
                 </a>
-                <button
-                  onClick={() => { downloadICS(ev); setShowExportMenu(null); }}
+                <button onClick={() => { downloadICS(ev); setShowExportMenu(null); }}
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 transition-colors border-t border-stone-100">
                   <span className="text-base leading-none">📅</span>
                   Outlook / Apple
@@ -243,7 +253,6 @@ export default function EventsPage() {
     );
   };
 
-  /* ── RENDER ── */
   return (
     <div className="space-y-4 animate-fade-in" onClick={() => showExportMenu && setShowExportMenu(null)}>
       <div className="flex items-center justify-between">
@@ -268,26 +277,19 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* CALENDAR VIEW */}
       {view === 'calendar' && (
         <>
           <div className="card p-0 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
-              <button onClick={() => setCurrentMonth(m => subMonths(m, 1))} className="btn-secondary p-2">
-                <ChevronLeft size={15} />
-              </button>
+              <button onClick={() => setCurrentMonth(m => subMonths(m, 1))} className="btn-secondary p-2"><ChevronLeft size={15} /></button>
               <span className="text-sm font-display font-semibold text-stone-800 capitalize">
                 {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
               </span>
-              <button onClick={() => setCurrentMonth(m => addMonths(m, 1))} className="btn-secondary p-2">
-                <ChevronRight size={15} />
-              </button>
+              <button onClick={() => setCurrentMonth(m => addMonths(m, 1))} className="btn-secondary p-2"><ChevronRight size={15} /></button>
             </div>
 
             <div className="grid grid-cols-7 px-3 pt-3">
-              {WEEKDAYS.map(d => (
-                <div key={d} className="text-center text-xs font-semibold text-stone-400 pb-2">{d}</div>
-              ))}
+              {WEEKDAYS.map(d => <div key={d} className="text-center text-xs font-semibold text-stone-400 pb-2">{d}</div>)}
             </div>
 
             <div className="grid grid-cols-7 gap-0.5 px-3 pb-3">
@@ -300,7 +302,6 @@ export default function EventsPage() {
                   <button key={day.toISOString()}
                     onClick={() => setSelectedDay(isSelected ? null : day)}
                     onDoubleClick={() => openCreate(day)}
-                    title="Clique para ver · Duplo-clique para criar"
                     className={`relative aspect-square rounded-xl flex flex-col items-center justify-start pt-1.5 text-sm transition-all group
                       ${today ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-200' : ''}
                       ${isSelected && !today ? 'bg-indigo-50 border-2 border-indigo-400 text-indigo-700 font-semibold' : ''}
@@ -327,7 +328,6 @@ export default function EventsPage() {
                   <div className={`w-2 h-2 rounded-full ${dot}`} /> {cat}
                 </div>
               ))}
-              <span className="text-xs text-stone-300 ml-auto hidden sm:block">Duplo-clique para criar</span>
             </div>
           </div>
 
@@ -351,9 +351,6 @@ export default function EventsPage() {
                 <div className="text-center py-6">
                   <Calendar size={28} className="mx-auto text-stone-200 mb-2" />
                   <p className="text-stone-400 text-sm">Nenhum evento neste dia</p>
-                  <button onClick={() => openCreate(selectedDay)} className="mt-3 text-xs text-indigo-500 hover:text-indigo-600 font-medium">
-                    + Criar evento neste dia
-                  </button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -400,20 +397,15 @@ export default function EventsPage() {
         </>
       )}
 
-      {/* LIST VIEW */}
       {view === 'list' && (
         <>
           {upcoming.length > 0 && (
-            <>
-              <p className="text-stone-400 text-xs font-semibold uppercase tracking-wider">Próximos</p>
-              <div className="space-y-2">{upcoming.map(ev => <EventCard key={ev.id} ev={ev} />)}</div>
-            </>
+            <><p className="text-stone-400 text-xs font-semibold uppercase tracking-wider">Próximos</p>
+            <div className="space-y-2">{upcoming.map(ev => <EventCard key={ev.id} ev={ev} />)}</div></>
           )}
           {past.length > 0 && (
-            <>
-              <p className="text-stone-400 text-xs font-semibold uppercase tracking-wider mt-4">Passados</p>
-              <div className="space-y-2 opacity-60">{past.slice(0, 5).map(ev => <EventCard key={ev.id} ev={ev} />)}</div>
-            </>
+            <><p className="text-stone-400 text-xs font-semibold uppercase tracking-wider mt-4">Passados</p>
+            <div className="space-y-2 opacity-60">{past.slice(0, 5).map(ev => <EventCard key={ev.id} ev={ev} />)}</div></>
           )}
           {events.length === 0 && (
             <div className="text-center py-12 text-stone-400">
@@ -424,7 +416,6 @@ export default function EventsPage() {
         </>
       )}
 
-      {/* CREATE MODAL */}
       {showModal && (
         <Modal title="Novo Evento" onClose={() => setShowModal(false)}>
           <div className="space-y-4">
@@ -443,6 +434,12 @@ export default function EventsPage() {
                 <input type="text" className="input mt-2" placeholder="Digite a categoria..."
                   value={form.customCategory} onChange={e => set('customCategory', e.target.value)} />
               )}
+            </div>
+
+            <div>
+              <label className="label">Responsável pelo evento</label>
+              <input type="text" className="input" placeholder="Nome do responsável"
+                value={form.responsible} onChange={e => set('responsible', e.target.value)} />
             </div>
 
             <div>
