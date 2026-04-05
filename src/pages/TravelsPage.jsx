@@ -293,7 +293,7 @@ export default function TravelsPage() {
           <div className="space-y-4">
             <div>
               <label className="label">Título / Nome da viagem</label>
-              <input type="text" className="input" placeholder="Ex: Viagem a Brasília"
+              <input type="text" className="input" placeholder="Ex: Fazenda Joia"
                 value={form.title} onChange={e => set('title', e.target.value)} />
             </div>
 
