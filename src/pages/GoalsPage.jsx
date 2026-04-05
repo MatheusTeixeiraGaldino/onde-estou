@@ -7,7 +7,7 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Target, ChevronDown, ChevronUp, Trash2, CheckSquare, Square, AlertTriangle, Edit2 } from 'lucide-react';
+import { Plus, BookOpen, ChevronDown, ChevronUp, Trash2, CheckSquare, Square, AlertTriangle, Edit2 } from 'lucide-react';
 import Modal from '../components/Modal';
 
 const STATUS_OPTIONS = ['pendente', 'em andamento', 'concluído'];
@@ -66,7 +66,7 @@ export default function GoalsPage() {
 
   const openEditGoal = (goal) => {
     setEditingGoal(goal.id);
-    setGoalForm({ title: goal.title, description: goal.description||'', responsible: goal.responsible||'', deadline: goal.deadline||'', status: goal.status });
+    setGoalForm({ title: goal.title, description: goal.description || '', responsible: goal.responsible || '', deadline: goal.deadline || '', status: goal.status });
     setShowGoalModal(true);
   };
 
@@ -84,7 +84,7 @@ export default function GoalsPage() {
   };
 
   const handleDeleteGoal = async (id) => {
-    if (!confirm('Excluir esta meta e todos seus itens?')) return;
+    if (!confirm('Excluir este programa e todos seus itens?')) return;
     const items = checklistItems[id] || [];
     for (const item of items) await deleteDoc(doc(db, 'checklistItems', item.id));
     await deleteDoc(doc(db, 'goals', id));
@@ -107,18 +107,18 @@ export default function GoalsPage() {
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-header">Metas</h1>
-          <p className="text-stone-400 text-sm">{goals.length} metas cadastradas</p>
+          <h1 className="page-header">Programas</h1>
+          <p className="text-stone-400 text-sm">{goals.length} programas cadastrados</p>
         </div>
         <button onClick={openCreateGoal} className="btn-primary">
-          <Plus size={16} /> Nova Meta
+          <Plus size={16} /> Novo Programa
         </button>
       </div>
 
       {goals.length === 0 ? (
         <div className="text-center py-12 text-stone-400">
-          <Target size={40} className="mx-auto mb-3 opacity-30" />
-          <p>Nenhuma meta criada ainda</p>
+          <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
+          <p>Nenhum programa criado ainda</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -138,7 +138,7 @@ export default function GoalsPage() {
                       <span className={`badge text-[10px] ${STATUS_BADGE[goal.status]}`}>{goal.status}</span>
                       {isOverdue && (
                         <span className="flex items-center gap-1 text-xs text-red-500">
-                          <AlertTriangle size={11} /> Atrasada
+                          <AlertTriangle size={11} /> Atrasado
                         </span>
                       )}
                     </div>
@@ -200,8 +200,7 @@ export default function GoalsPage() {
                                     {item.responsible && <span className="text-xs text-stone-400">👤 {item.responsible}</span>}
                                     {item.deadline && (
                                       <span className={`text-xs ${itemOverdue ? 'text-red-500' : 'text-stone-400'}`}>
-                                        📅 {format(new Date(item.deadline), "d MMM", { locale: ptBR })}
-                                        {itemOverdue && ' ⚠️'}
+                                        📅 {format(new Date(item.deadline), "d MMM", { locale: ptBR })}{itemOverdue && ' ⚠️'}
                                       </span>
                                     )}
                                   </div>
@@ -225,11 +224,11 @@ export default function GoalsPage() {
       )}
 
       {showGoalModal && (
-        <Modal title={editingGoal ? 'Editar Meta' : 'Nova Meta'} onClose={() => setShowGoalModal(false)}>
+        <Modal title={editingGoal ? 'Editar Programa' : 'Novo Programa'} onClose={() => setShowGoalModal(false)}>
           <div className="space-y-4">
             <div>
               <label className="label">Título *</label>
-              <input type="text" className="input" placeholder="Nome da meta" value={goalForm.title} onChange={e => setG('title', e.target.value)} />
+              <input type="text" className="input" placeholder="Nome do programa" value={goalForm.title} onChange={e => setG('title', e.target.value)} />
             </div>
             <div>
               <label className="label">Descrição</label>
@@ -251,9 +250,7 @@ export default function GoalsPage() {
                 {STATUS_OPTIONS.map(s => (
                   <button key={s} type="button" onClick={() => setG('status', s)}
                     className={`flex-1 py-2 rounded-xl text-xs font-medium capitalize transition-all
-                      ${goalForm.status === s
-                        ? 'bg-indigo-100 border-indigo-400 border text-indigo-700'
-                        : 'bg-white border border-stone-200 text-stone-500 hover:border-stone-300'}`}>
+                      ${goalForm.status === s ? 'bg-indigo-100 border-indigo-400 border text-indigo-700' : 'bg-white border border-stone-200 text-stone-500 hover:border-stone-300'}`}>
                     {s}
                   </button>
                 ))}
@@ -262,7 +259,7 @@ export default function GoalsPage() {
             <div className="flex gap-2 pt-1">
               <button onClick={() => setShowGoalModal(false)} className="btn-secondary flex-1 justify-center">Cancelar</button>
               <button onClick={handleSaveGoal} disabled={loading || !goalForm.title} className="btn-primary flex-1 justify-center">
-                {loading ? 'Salvando...' : 'Salvar Meta'}
+                {loading ? 'Salvando...' : 'Salvar Programa'}
               </button>
             </div>
           </div>
