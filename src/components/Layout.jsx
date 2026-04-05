@@ -1,14 +1,14 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, Users, Calendar, FileText, BookOpen, User, MapPin, Plane } from 'lucide-react';
+import { Home, Users, Calendar, FileText, FolderKanban, User, MapPin, Plane } from 'lucide-react';
 
 const navItems = [
-  { to: '/',         icon: Home,     label: 'Home' },
-  { to: '/people',   icon: Users,    label: 'Pessoas' },
-  { to: '/events',   icon: Calendar, label: 'Eventos' },
-  { to: '/travels',  icon: Plane,    label: 'Viagens' },
-  { to: '/meetings', icon: FileText, label: 'Atas' },
-  { to: '/goals',    icon: BookOpen, label: 'Programas' },
-  { to: '/profile',  icon: User,     label: 'Perfil' },
+  { to: '/',         icon: Home,          label: 'Home' },
+  { to: '/people',   icon: Users,         label: 'Pessoas' },
+  { to: '/events',   icon: Calendar,      label: 'Eventos' },
+  { to: '/travels',  icon: Plane,         label: 'Viagens' },
+  { to: '/meetings', icon: FileText,      label: 'Atas' },
+  { to: '/goals',    icon: FolderKanban,  label: 'Projetos' },
+  { to: '/profile',  icon: User,          label: 'Perfil' },
 ];
 
 export default function Layout() {
