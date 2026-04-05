@@ -6,6 +6,7 @@ import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import PeoplePage from './pages/PeoplePage';
 import EventsPage from './pages/EventsPage';
+import TravelsPage from './pages/TravelsPage';
 import MeetingsPage from './pages/MeetingsPage';
 import GoalsPage from './pages/GoalsPage';
 import CalendarPage from './pages/CalendarPage';
@@ -37,6 +38,7 @@ export default function App() {
             <Route index element={<HomePage />} />
             <Route path="people" element={<PeoplePage />} />
             <Route path="events" element={<EventsPage />} />
+            <Route path="travels" element={<TravelsPage />} />
             <Route path="meetings" element={<MeetingsPage />} />
             <Route path="goals" element={<GoalsPage />} />
             <Route path="calendar" element={<CalendarPage />} />
