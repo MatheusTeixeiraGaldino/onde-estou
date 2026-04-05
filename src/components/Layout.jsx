@@ -1,10 +1,11 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, Users, Calendar, FileText, BookOpen, User, MapPin } from 'lucide-react';
+import { Home, Users, Calendar, FileText, BookOpen, User, MapPin, Plane } from 'lucide-react';
 
 const navItems = [
   { to: '/',         icon: Home,     label: 'Home' },
   { to: '/people',   icon: Users,    label: 'Pessoas' },
   { to: '/events',   icon: Calendar, label: 'Eventos' },
+  { to: '/travels',  icon: Plane,    label: 'Viagens' },
   { to: '/meetings', icon: FileText, label: 'Atas' },
   { to: '/goals',    icon: BookOpen, label: 'Programas' },
   { to: '/profile',  icon: User,     label: 'Perfil' },
@@ -33,8 +34,8 @@ export default function Layout() {
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} end={to === '/'}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              <Icon size={20} />
-              <span className="text-[10px] font-medium">{label}</span>
+              <Icon size={18} />
+              <span className="text-[9px] font-medium">{label}</span>
             </NavLink>
           ))}
         </div>
