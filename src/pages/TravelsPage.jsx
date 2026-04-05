@@ -25,11 +25,10 @@ export default function TravelsPage() {
     title: '',
     destination: '',
     departureDate: '',
-    departureTime: '',
     returnDate: '',
-    returnTime: '',
+    routeOrigin: '',
+    routeStops: '',
     companions: '',
-    route: '',
     hasVacancies: false,
     vacancies: '',
     notes: '',
@@ -53,7 +52,7 @@ export default function TravelsPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm({ title: '', destination: '', departureDate: '', departureTime: '', returnDate: '', returnTime: '', companions: '', route: '', hasVacancies: false, vacancies: '', notes: '' });
+    setForm({ title: '', destination: '', departureDate: '', returnDate: '', routeOrigin: '', routeStops: '', companions: '', hasVacancies: false, vacancies: '', notes: '' });
     setShowModal(true);
   };
 
@@ -63,11 +62,10 @@ export default function TravelsPage() {
       title: t.title || '',
       destination: t.destination || '',
       departureDate: t.departureDate || '',
-      departureTime: t.departureTime || '',
       returnDate: t.returnDate || '',
-      returnTime: t.returnTime || '',
+      routeOrigin: t.routeOrigin || '',
+      routeStops: t.routeStops || '',
       companions: t.companions || '',
-      route: t.route || '',
       hasVacancies: t.hasVacancies || false,
       vacancies: t.vacancies || '',
       notes: t.notes || '',
@@ -79,20 +77,11 @@ export default function TravelsPage() {
     if (!form.destination || !form.departureDate) return;
     setLoading(true);
     try {
-      const data = {
-        ...form,
-        creatorId: user.uid,
-        creatorName: profile?.name,
-        updatedAt: serverTimestamp(),
-      };
+      const data = { ...form, creatorId: user.uid, creatorName: profile?.name, updatedAt: serverTimestamp() };
       if (editingId) {
         await updateDoc(doc(db, 'travels', editingId), data);
       } else {
-        await addDoc(collection(db, 'travels'), {
-          ...data,
-          confirmedUsers: [],
-          createdAt: serverTimestamp(),
-        });
+        await addDoc(collection(db, 'travels'), { ...data, confirmedUsers: [], createdAt: serverTimestamp() });
       }
       setShowModal(false);
     } finally { setLoading(false); }
@@ -117,11 +106,18 @@ export default function TravelsPage() {
     const confirmedCount = t.confirmedUsers?.length || 0;
     const vacancyCount = parseInt(t.vacancies) || 0;
     const spotsLeft = t.hasVacancies ? vacancyCount - confirmedCount : null;
-    const isPast = t.returnDate && !isAfter(new Date(t.returnDate), startOfDay(new Date()));
+    const isPastTravel = t.returnDate && !isAfter(new Date(t.returnDate), startOfDay(new Date()));
+    const isCreator = t.creatorId === user.uid;
+
+    // Build route string: Origin → Stops → Destination
+    const routeParts = [];
+    if (t.routeOrigin) routeParts.push(t.routeOrigin);
+    if (t.routeStops) routeParts.push(t.routeStops);
+    if (t.destination) routeParts.push(t.destination);
+    const fullRoute = routeParts.join(' → ');
 
     return (
-      <div className={`card border-emerald-200 ${isPast ? 'opacity-60' : 'bg-gradient-to-br from-emerald-50/40 to-white'}`}>
-        {/* Header */}
+      <div className={`card border-emerald-200 ${isPastTravel ? 'opacity-60' : 'bg-gradient-to-br from-emerald-50/40 to-white'}`}>
         <div className="flex items-start justify-between gap-2 cursor-pointer"
           onClick={() => setExpandedId(isExpanded ? null : t.id)}>
           <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -129,29 +125,19 @@ export default function TravelsPage() {
               <Plane size={16} className="text-emerald-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-stone-800">
-                {t.title || t.destination}
-              </p>
+              <p className="font-semibold text-stone-800">{t.title || t.destination}</p>
               {t.destination && t.title && (
                 <p className="text-xs text-emerald-700 font-medium flex items-center gap-1 mt-0.5">
                   <MapPin size={10} /> {t.destination}
                 </p>
               )}
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-stone-400">
                 {t.departureDate && (
-                  <span className="text-xs text-stone-400">
-                    {format(new Date(t.departureDate), "d MMM", { locale: ptBR })}
-                    {t.departureTime && ` ${t.departureTime}`}
-                  </span>
+                  <span>Ida: {format(new Date(t.departureDate), "d MMM", { locale: ptBR })}</span>
                 )}
                 {t.returnDate && (
-                  <>
-                    <ArrowRight size={10} className="text-stone-300" />
-                    <span className="text-xs text-stone-400">
-                      {format(new Date(t.returnDate), "d MMM", { locale: ptBR })}
-                      {t.returnTime && ` ${t.returnTime}`}
-                    </span>
-                  </>
+                  <><ArrowRight size={10} className="text-stone-300" />
+                  <span>Volta: {format(new Date(t.returnDate), "d MMM", { locale: ptBR })}</span></>
                 )}
               </div>
             </div>
@@ -167,7 +153,7 @@ export default function TravelsPage() {
                 Vagas abertas
               </span>
             )}
-            {t.creatorId === user.uid && (
+            {isCreator && (
               <>
                 <button onClick={e => { e.stopPropagation(); openEdit(t); }}
                   className="p-1.5 text-stone-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors">
@@ -183,7 +169,6 @@ export default function TravelsPage() {
           </div>
         </div>
 
-        {/* Expanded */}
         {isExpanded && (
           <div className="mt-4 border-t border-emerald-100 pt-4 space-y-3 animate-fade-in">
             <div className="grid grid-cols-2 gap-3">
@@ -192,22 +177,25 @@ export default function TravelsPage() {
                 <p className="text-sm font-medium text-stone-700">
                   {t.departureDate ? format(new Date(t.departureDate), "d 'de' MMMM", { locale: ptBR }) : '—'}
                 </p>
-                {t.departureTime && <p className="text-xs text-stone-400">{t.departureTime}</p>}
               </div>
               <div className="bg-white rounded-xl border border-emerald-100 p-3">
                 <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">🏠 Volta</p>
                 <p className="text-sm font-medium text-stone-700">
                   {t.returnDate ? format(new Date(t.returnDate), "d 'de' MMMM", { locale: ptBR }) : '—'}
                 </p>
-                {t.returnTime && <p className="text-xs text-stone-400">{t.returnTime}</p>}
               </div>
             </div>
 
-            {t.route && (
+            {fullRoute && (
               <div>
                 <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">Rota</p>
-                <p className="text-sm text-stone-700 flex items-center gap-1.5">
-                  <ArrowRight size={13} className="text-emerald-500 flex-shrink-0" /> {t.route}
+                <p className="text-sm text-stone-700 flex items-center gap-1.5 flex-wrap">
+                  {routeParts.map((part, i) => (
+                    <span key={i} className="flex items-center gap-1.5">
+                      {i > 0 && <ArrowRight size={12} className="text-emerald-400 flex-shrink-0" />}
+                      <span className={i === routeParts.length - 1 ? 'font-semibold text-emerald-700' : 'text-stone-600'}>{part}</span>
+                    </span>
+                  ))}
                 </p>
               </div>
             )}
@@ -225,12 +213,10 @@ export default function TravelsPage() {
               <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">Vagas</p>
               {t.hasVacancies ? (
                 <p className={`text-sm font-semibold ${spotsLeft > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {spotsLeft > 0
-                    ? `${spotsLeft} vaga(s) disponível(is) de ${vacancyCount}`
-                    : `Lotado (${vacancyCount} vagas preenchidas)`}
+                  {spotsLeft > 0 ? `${spotsLeft} vaga(s) de ${vacancyCount}` : `Lotado (${vacancyCount} vagas)`}
                 </p>
               ) : (
-                <p className="text-sm text-stone-500">Vagas abertas (sem limite definido)</p>
+                <p className="text-sm text-stone-500">Vagas abertas (sem limite)</p>
               )}
               <p className="text-xs text-stone-400 mt-0.5">{confirmedCount} pessoa(s) confirmada(s)</p>
             </div>
@@ -242,12 +228,10 @@ export default function TravelsPage() {
               </div>
             )}
 
-            {!isPast && (
+            {!isPastTravel && (
               <button onClick={() => toggleConfirm(t)}
-                className={confirmed
-                  ? 'flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 hover:bg-emerald-100 transition-colors w-full justify-center'
-                  : 'flex items-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 hover:bg-indigo-100 transition-colors w-full justify-center'
-                }>
+                className={`flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 w-full justify-center transition-colors
+                  ${confirmed ? 'text-emerald-600 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100' : 'text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100'}`}>
                 {confirmed ? <><Check size={12} /> Confirmado nesta viagem</> : <><UserCheck size={12} /> Confirmar minha presença</>}
               </button>
             )}
@@ -271,7 +255,6 @@ export default function TravelsPage() {
         </button>
       </div>
 
-      {/* Tabs */}
       <div className="flex bg-stone-100 rounded-xl p-1 border border-stone-200">
         <button onClick={() => setActiveTab('proximas')}
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'proximas' ? 'bg-white shadow-sm text-stone-800' : 'text-stone-400 hover:text-stone-600'}`}>
@@ -290,9 +273,7 @@ export default function TravelsPage() {
             <p>Nenhuma viagem programada</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {upcoming.map(t => <TravelCard key={t.id} t={t} />)}
-          </div>
+          <div className="space-y-2">{upcoming.map(t => <TravelCard key={t.id} t={t} />)}</div>
         )
       )}
 
@@ -303,13 +284,10 @@ export default function TravelsPage() {
             <p>Nenhuma viagem passada</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {past.map(t => <TravelCard key={t.id} t={t} />)}
-          </div>
+          <div className="space-y-2">{past.map(t => <TravelCard key={t.id} t={t} />)}</div>
         )
       )}
 
-      {/* MODAL */}
       {showModal && (
         <Modal title={editingId ? 'Editar Viagem' : 'Nova Viagem'} onClose={() => setShowModal(false)}>
           <div className="space-y-4">
@@ -331,19 +309,22 @@ export default function TravelsPage() {
                 <input type="date" className="input" value={form.departureDate} onChange={e => set('departureDate', e.target.value)} />
               </div>
               <div>
-                <label className="label">Horário de ida</label>
-                <input type="time" className="input" value={form.departureTime} onChange={e => set('departureTime', e.target.value)} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
                 <label className="label">Data de volta</label>
                 <input type="date" className="input" value={form.returnDate} onChange={e => set('returnDate', e.target.value)} />
               </div>
-              <div>
-                <label className="label">Horário de volta</label>
-                <input type="time" className="input" value={form.returnTime} onChange={e => set('returnTime', e.target.value)} />
+            </div>
+
+            {/* Route fields */}
+            <div>
+              <label className="label">Rota</label>
+              <div className="space-y-2">
+                <input type="text" className="input" placeholder="Saída (cidade de origem)"
+                  value={form.routeOrigin} onChange={e => set('routeOrigin', e.target.value)} />
+                <input type="text" className="input" placeholder="Paradas intermediárias (opcional)"
+                  value={form.routeStops} onChange={e => set('routeStops', e.target.value)} />
+                <p className="text-xs text-stone-400 flex items-center gap-1">
+                  <ArrowRight size={10} /> O destino final já é preenchido automaticamente pelo campo acima
+                </p>
               </div>
             </div>
 
@@ -351,12 +332,6 @@ export default function TravelsPage() {
               <label className="label">Com quem vai</label>
               <input type="text" className="input" placeholder="Nomes dos acompanhantes..."
                 value={form.companions} onChange={e => set('companions', e.target.value)} />
-            </div>
-
-            <div>
-              <label className="label">Rota</label>
-              <input type="text" className="input" placeholder="Ex: Goianésia → Anápolis → Brasília"
-                value={form.route} onChange={e => set('route', e.target.value)} />
             </div>
 
             <div>
